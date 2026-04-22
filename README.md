@@ -84,11 +84,39 @@ Navigate to **http://localhost:5000**.
 Use this whenever you need to reload from a known-good state (e.g., before the demo):
 
 ```bash
-mysql -u <user> -p -e "DROP DATABASE IF EXISTS job_matching; \
-  CREATE DATABASE job_matching CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u <user> -p job_matching < schema.sql
-mysql -u <user> -p job_matching < seed.sql
+mysql -u <user> -p -e "DROP DATABASE IF EXISTS job_matching; CREATE DATABASE job_matching CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" && mysql -u <user> -p job_matching < schema.sql && mysql -u <user> -p job_matching < seed.sql
 ```
+
+#### Seed file load order
+
+The database is populated by two layered scripts that must be applied in order:
+
+| Order | File | Purpose |
+|---|---|---|
+| 1 | `schema.sql` | Creates all tables, constraints, and indexes. Must run first — seed data references these tables. |
+| 2 | `seed.sql` | Inserts synthetic data. Respects FK order: Company → Skill → Student → Opportunity → StudentSkill → OpportunitySkill → Application. |
+
+Running `seed.sql` before `schema.sql` will fail with table-not-found errors.
+
+#### Generating a larger dataset
+
+The default `seed.sql` ships with 5 students and 3 companies for fast local testing. To generate a larger, randomized dataset matching the project spec (30–50 students, 10–15 companies):
+
+```bash
+# Generate with defaults (30 students, 10 companies) — overwrites seed.sql
+python3 scripts/generate_seed.py
+
+# Custom size
+python3 scripts/generate_seed.py --students 50 --companies 15
+
+# Write to a separate file (keep the original seed.sql intact)
+python3 scripts/generate_seed.py --students 40 --companies 12 --output seed_large.sql
+
+# Then load it
+mysql -u <user> -p job_matching < seed_large.sql
+```
+
+The generator uses a fixed random seed (`seed=42`) so output is reproducible across machines. It truncates all tables before inserting, so it is safe to re-run without manual cleanup.
 
 ---
 
