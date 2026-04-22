@@ -96,3 +96,41 @@ CREATE TABLE IF NOT EXISTS OpportunitySkill (
 CREATE INDEX IF NOT EXISTS idx_studentskill_skill_id    ON StudentSkill   (skill_id);
 CREATE INDEX IF NOT EXISTS idx_opportunityskill_skill_id ON OpportunitySkill (skill_id);
 CREATE INDEX IF NOT EXISTS idx_application_opportunity  ON Application    (opportunity_id);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Pre-join Views (Week 4)
+--
+-- Purpose: flatten the most common multi-table joins into reusable views so
+-- that the Week 5/6 matching algorithm queries stay concise and readable.
+--
+-- StudentSkillView  — one row per (student, skill) pair
+--   Columns: user_id, name, skill_id, skill_name, level
+--
+-- OpportunitySkillView — one row per (opportunity, skill) pair
+--   Columns: opportunity_id, title, skill_id, skill_name, priority
+--
+-- Both views are created with CREATE OR REPLACE so this file stays idempotent.
+-- ──────────────────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE VIEW StudentSkillView AS
+    SELECT
+        s.user_id,
+        s.name,
+        sk.skill_id,
+        sk.name  AS skill_name,
+        ss.level
+    FROM Student      s
+    JOIN StudentSkill ss ON s.user_id   = ss.user_id
+    JOIN Skill        sk ON ss.skill_id = sk.skill_id;
+
+CREATE OR REPLACE VIEW OpportunitySkillView AS
+    SELECT
+        o.opportunity_id,
+        o.title,
+        sk.skill_id,
+        sk.name    AS skill_name,
+        os.priority
+    FROM Opportunity     o
+    JOIN OpportunitySkill os ON o.opportunity_id  = os.opportunity_id
+    JOIN Skill            sk ON os.skill_id        = sk.skill_id;
+
