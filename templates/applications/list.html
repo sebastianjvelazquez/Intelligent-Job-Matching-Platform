@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Applications{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Applications <span class="badge bg-secondary">{{ applications|length }}</span></h2>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>user_id</th>
+        <th>Student</th>
+        <th>opportunity_id</th>
+        <th>Opportunity</th>
+        <th>Applied At</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in applications %}
+      <tr>
+        <td>{{ a.user_id }}</td>
+        <td><a href="/students/{{ a.user_id }}">{{ a.student_name }}</a></td>
+        <td>{{ a.opportunity_id }}</td>
+        <td><a href="/opportunities/{{ a.opportunity_id }}">{{ a.opportunity_title }}</a></td>
+        <td class="text-muted small">{{ a.applied_at }}</td>
+        <td>
+          {% if a.status == 'accepted' %}
+            <span class="badge bg-success">{{ a.status }}</span>
+          {% elif a.status == 'rejected' %}
+            <span class="badge bg-danger">{{ a.status }}</span>
+          {% elif a.status == 'reviewed' %}
+            <span class="badge bg-primary">{{ a.status }}</span>
+          {% else %}
+            <span class="badge bg-secondary">{{ a.status }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="text-center text-muted">No applications found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

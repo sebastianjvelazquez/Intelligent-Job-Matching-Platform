@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Home — Job Matching Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+  <div class="col-md-8 text-center">
+    <h1 class="display-5 fw-bold mb-3">Intelligent Job Matching Platform</h1>
+    <p class="lead text-muted mb-5">
+      COP 4710 · Group 10 · Florida State University<br>
+      Skill-based compatibility scoring between students and job opportunities.
+    </p>
+  </div>
+</div>
+
+<div class="row g-4 justify-content-center">
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Students</h5>
+        <p class="card-text text-muted">Browse students, view their skills, add or edit records.</p>
+        <a href="/students" class="btn btn-primary">View Students</a>
+        <a href="/students/new" class="btn btn-outline-primary ms-2">Add Student</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Opportunities</h5>
+        <p class="card-text text-muted">Browse all open positions and their required skills.</p>
+        <a href="/opportunities" class="btn btn-primary">View Opportunities</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm border-success">
+      <div class="card-body">
+        <h5 class="card-title text-success">Match Algorithm</h5>
+        <p class="card-text text-muted">Score a student against every open opportunity and see a ranked breakdown.</p>
+        <a href="/match" class="btn btn-success">Run Match</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

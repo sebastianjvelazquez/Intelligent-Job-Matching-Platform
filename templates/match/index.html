@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Run Match{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <h5 class="mb-0">Skill-Based Opportunity Match</h5>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small">
+          Select a student to see all opportunities ranked by their skill compatibility score.
+        </p>
+        <div class="mb-3">
+          <label class="form-label" for="student-select">Student</label>
+          <select id="student-select" class="form-select">
+            {% for s in students %}
+            <option value="{{ s.user_id }}">{{ s.name }} — {{ s.major }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn btn-success w-100" onclick="runMatch()">Find Best Matches</button>
+      </div>
+    </div>
+
+    <div class="card mt-3 border-0 bg-light">
+      <div class="card-body small text-muted">
+        <strong>Score formula:</strong><br>
+        <code>score = (required_raw + preferred_raw × 0.5) / (max_req + max_pref × 0.5)</code><br>
+        Weights: Advanced = 1.0 · Intermediate = 0.7 · Beginner = 0.4
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function runMatch() {
+  const id = document.getElementById('student-select').value;
+  if (id) window.location.href = `/match/${id}`;
+}
+</script>
+{% endblock %}

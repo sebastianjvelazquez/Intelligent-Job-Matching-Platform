@@ -7,6 +7,16 @@ from flask import Flask
 def create_app():
     app = Flask(__name__, template_folder="../templates", static_folder="../static")
 
+    # Required for flash() messages used in HTML form submissions.
+    app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-prod")
+
+    # Always emit compact JSON (no extra spaces) so curl-based tests can grep
+    # for patterns like '"user_id":42' without worrying about whitespace.
+    try:
+        app.json.compact = True  # Flask >= 2.2
+    except AttributeError:
+        app.config["JSONIFY_PRETTYPRINT_REGULAR"] = False
+
     from .routes import main
     app.register_blueprint(main)
 

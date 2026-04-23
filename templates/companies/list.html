@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Companies{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Companies <span class="badge bg-secondary">{{ companies|length }}</span></h2>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Location</th>
+        <th>Opportunities</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in companies %}
+      <tr>
+        <td>{{ c.company_id }}</td>
+        <td>{{ c.name }}</td>
+        <td>{{ c.location }}</td>
+        <td><a href="/opportunities" class="btn btn-sm btn-outline-secondary">View all</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="text-center text-muted">No companies found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

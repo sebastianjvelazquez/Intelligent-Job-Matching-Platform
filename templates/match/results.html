@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Match Results — {{ student.name }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/match">Match</a></li>
+    <li class="breadcrumb-item active">{{ student.name }}</li>
+  </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Match Results — {{ student.name }}</h2>
+  <a href="/match" class="btn btn-outline-secondary btn-sm">← Change Student</a>
+</div>
+
+<p class="text-muted small mb-3">
+  Ranked by compatibility score across {{ results|length }} opportunities.
+  Student skills: {{ student.skills|length }} on record.
+</p>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>opportunity</th>
+        <th>Company</th>
+        <th>Location</th>
+        <th>score</th>
+        <th>Matched Skills</th>
+        <th>Missing Required</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in results %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>
+          <a href="/opportunities/{{ r.opportunity_id }}">{{ r.opportunity }}</a>
+        </td>
+        <td>{{ r.company }}</td>
+        <td>{{ r.location }}</td>
+        <td>
+          <div class="fw-bold {% if r.score >= 0.8 %}text-success{% elif r.score >= 0.5 %}text-primary{% else %}text-muted{% endif %}">
+            {{ "%.4f"|format(r.score) }}
+          </div>
+          <div class="progress mt-1" style="height:6px; width:80px;">
+            <div class="progress-bar
+              {% if r.score >= 0.8 %}bg-success{% elif r.score >= 0.5 %}bg-primary{% else %}bg-secondary{% endif %}"
+              style="width:{{ (r.score * 100)|int }}%"></div>
+          </div>
+        </td>
+        <td>
+          {% for sk in r.matched_skills %}
+            <span class="badge {% if sk.priority == 'required' %}bg-success{% else %}bg-primary{% endif %} me-1 mb-1"
+                  title="{{ sk.priority }} · {{ sk.level }}">
+              {{ sk.skill }}
+            </span>
+          {% else %}
+            <span class="text-muted small">—</span>
+          {% endfor %}
+        </td>
+        <td>
+          {% for sk in r.missing_skills %}
+            <span class="badge bg-danger me-1 mb-1">{{ sk.skill }}</span>
+          {% else %}
+            <span class="text-success small">✓ all required</span>
+          {% endfor %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card border-0 bg-light mt-3">
+  <div class="card-body small text-muted">
+    <strong>Legend:</strong>
+    <span class="badge bg-success me-1">required skill matched</span>
+    <span class="badge bg-primary me-1">preferred skill matched</span>
+    <span class="badge bg-danger me-1">required skill missing</span>
+    &nbsp;·&nbsp;
+    score = (required_raw + preferred_raw × 0.5) / (max_req + max_pref × 0.5)
+  </div>
+</div>
+{% endblock %}

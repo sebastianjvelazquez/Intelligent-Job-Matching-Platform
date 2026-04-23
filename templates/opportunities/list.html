@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Opportunities{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Opportunities <span class="badge bg-secondary">{{ opportunities|length }}</span></h2>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>ID</th>
+        <th>Title</th>
+        <th>Company</th>
+        <th>Location</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for o in opportunities %}
+      <tr>
+        <td>{{ o.opportunity_id }}</td>
+        <td><a href="/opportunities/{{ o.opportunity_id }}">{{ o.title }}</a></td>
+        <td>{{ o.company_name }}</td>
+        <td>{{ o.location }}</td>
+        <td><a href="/opportunities/{{ o.opportunity_id }}" class="btn btn-sm btn-outline-secondary">View</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-center text-muted">No opportunities found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
