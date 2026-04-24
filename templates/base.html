@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Job Matching Platform{% endblock %}</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  >
+  <style>
+    .nav-link.active { font-weight: 600; }
+    .badge-required  { background-color: #dc3545; }
+    .badge-preferred { background-color: #0d6efd; }
+    .score-bar { height: 8px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="/">Job Matching</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="nav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link {% if request.path.startswith('/students') %}active{% endif %}" href="/students">Students</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.path.startswith('/opportunities') %}active{% endif %}" href="/opportunities">Opportunities</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.path.startswith('/match') %}active{% endif %}" href="/match">Match</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.path.startswith('/applications') %}active{% endif %}" href="/applications">Applications</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.path.startswith('/companies') %}active{% endif %}" href="/companies">Companies</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.path.startswith('/skills') %}active{% endif %}" href="/skills">Skills</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container pb-5">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="alert alert-info alert-dismissible fade show" role="alert">
+            {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmDgyLT8VCLRm4RNy3FClFKa1xz"
+    crossorigin="anonymous"
+  ></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

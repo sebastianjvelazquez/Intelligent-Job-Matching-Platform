@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{{ student.name }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/students">Students</a></li>
+    <li class="breadcrumb-item active">{{ student.name }}</li>
+  </ol>
+</nav>
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">{{ student.name }}</h5>
+        <span class="badge bg-secondary">ID {{ student.user_id }}</span>
+      </div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item"><strong>Email:</strong> {{ student.email }}</li>
+        <li class="list-group-item"><strong>Major:</strong> {{ student.major }}</li>
+        <li class="list-group-item"><strong>Location:</strong> {{ student.location }}</li>
+        {% if student.resume %}
+        <li class="list-group-item"><strong>Resume:</strong> {{ student.resume }}</li>
+        {% endif %}
+      </ul>
+      <div class="card-footer d-flex gap-2">
+        <a href="/students/{{ student.user_id }}/edit" class="btn btn-primary btn-sm">Edit</a>
+        <a href="/match/{{ student.user_id }}" class="btn btn-success btn-sm">View Matches</a>
+        <button class="btn btn-danger btn-sm ms-auto"
+                onclick="deleteStudent({{ student.user_id }})">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <h5>Skills
+      <span class="badge bg-secondary">{{ student.skills|length }}</span>
+    </h5>
+    {% if student.skills %}
+    <table class="table table-sm table-bordered">
+      <thead class="table-light">
+        <tr><th>Skill</th><th>Level</th></tr>
+      </thead>
+      <tbody>
+        {% for sk in student.skills %}
+        <tr>
+          <td>{{ sk.skill_name }}</td>
+          <td>
+            {% if sk.level == 'Advanced' %}
+              <span class="badge bg-success">{{ sk.level }}</span>
+            {% elif sk.level == 'Intermediate' %}
+              <span class="badge bg-primary">{{ sk.level }}</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ sk.level }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">No skills on record.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function deleteStudent(id) {
+  if (!confirm('Delete this student? This cannot be undone.')) return;
+  const resp = await fetch(`/students/${id}`, { method: 'DELETE' });
+  if (resp.ok) window.location.href = '/students';
+  else {
+    const err = await resp.json();
+    alert(err.error || 'Failed to delete student.');
+  }
+}
+</script>
+{% endblock %}

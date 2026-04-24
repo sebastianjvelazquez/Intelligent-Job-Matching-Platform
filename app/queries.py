@@ -1,2 +1,278 @@
-# SQL query strings will be defined here and imported by routes.py.
-# Each function accepts a cursor and the necessary parameters.
+"""
+app/queries.py
+--------------
+Parameterized SQL query functions for the Intelligent Job Matching Platform.
+Each function accepts an open cursor and the required parameters; callers are
+responsible for committing and closing the connection.
+"""
+
+# Weight map used by the matching algorithm (matches the schema ENUM values).
+LEVEL_WEIGHTS = {"Advanced": 1.0, "Intermediate": 0.7, "Beginner": 0.4}
+
+
+# ─── Students ────────────────────────────────────────────────────────────────
+
+def get_all_students(cursor):
+    """Return all students as a list of dicts, ordered by name."""
+    cursor.execute(
+        "SELECT user_id, name, email, major, location "
+        "FROM Student ORDER BY name"
+    )
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+def get_student_by_id(cursor, user_id):
+    """Return one student dict with a 'skills' list, or None if not found."""
+    cursor.execute(
+        "SELECT user_id, name, email, major, location, resume "
+        "FROM Student WHERE user_id = %s",
+        (user_id,),
+    )
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    student = dict(zip([d[0] for d in cursor.description], row))
+
+    cursor.execute(
+        "SELECT sk.skill_id, sk.name AS skill_name, ss.level "
+        "FROM StudentSkill ss "
+        "JOIN Skill sk ON ss.skill_id = sk.skill_id "
+        "WHERE ss.user_id = %s "
+        "ORDER BY sk.name",
+        (user_id,),
+    )
+    skill_cols = [d[0] for d in cursor.description]
+    student["skills"] = [dict(zip(skill_cols, r)) for r in cursor.fetchall()]
+    return student
+
+
+def create_student(cursor, name, email, major, location, resume=None):
+    """Insert a new student and return the generated user_id."""
+    cursor.execute(
+        "INSERT INTO Student (name, email, major, location, resume) "
+        "VALUES (%s, %s, %s, %s, %s)",
+        (name, email, major, location, resume),
+    )
+    return cursor.lastrowid
+
+
+def update_student(cursor, user_id, fields):
+    """Update allowed fields for a student.
+
+    fields is a dict of column→value pairs; unrecognised keys are ignored.
+    Returns True if a row was modified.
+    """
+    allowed = {"name", "email", "major", "location", "resume"}
+    updates = {k: v for k, v in fields.items() if k in allowed}
+    if not updates:
+        return False
+    set_clause = ", ".join(f"{col} = %s" for col in updates)
+    values = list(updates.values()) + [user_id]
+    cursor.execute(f"UPDATE Student SET {set_clause} WHERE user_id = %s", values)
+    return cursor.rowcount > 0
+
+
+def delete_student(cursor, user_id):
+    """Delete a student by primary key. Returns True if a row was removed."""
+    cursor.execute("DELETE FROM Student WHERE user_id = %s", (user_id,))
+    return cursor.rowcount > 0
+
+
+# ─── Opportunities ────────────────────────────────────────────────────────────
+
+def get_all_opportunities(cursor):
+    """Return all opportunities with company name, ordered by title."""
+    cursor.execute(
+        "SELECT o.opportunity_id, o.title, o.location, c.name AS company_name "
+        "FROM Opportunity o "
+        "JOIN Company c ON o.company_id = c.company_id "
+        "ORDER BY o.title"
+    )
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+def get_opportunity_by_id(cursor, opp_id):
+    """Return one opportunity dict with company info and skills list, or None."""
+    cursor.execute(
+        "SELECT o.opportunity_id, o.title, o.location, "
+        "c.company_id, c.name AS company_name, c.location AS company_location "
+        "FROM Opportunity o "
+        "JOIN Company c ON o.company_id = c.company_id "
+        "WHERE o.opportunity_id = %s",
+        (opp_id,),
+    )
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    opp = dict(zip([d[0] for d in cursor.description], row))
+
+    cursor.execute(
+        "SELECT sk.skill_id, sk.name AS skill_name, os.priority "
+        "FROM OpportunitySkill os "
+        "JOIN Skill sk ON os.skill_id = sk.skill_id "
+        "WHERE os.opportunity_id = %s "
+        "ORDER BY os.priority, sk.name",
+        (opp_id,),
+    )
+    skill_cols = [d[0] for d in cursor.description]
+    opp["skills"] = [dict(zip(skill_cols, r)) for r in cursor.fetchall()]
+    return opp
+
+
+# ─── Companies ───────────────────────────────────────────────────────────────
+
+def get_all_companies(cursor):
+    """Return all companies ordered by name."""
+    cursor.execute("SELECT company_id, name, location FROM Company ORDER BY name")
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+# ─── Skills ──────────────────────────────────────────────────────────────────
+
+def get_all_skills(cursor):
+    """Return all skills ordered by name."""
+    cursor.execute("SELECT skill_id, name FROM Skill ORDER BY name")
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+# ─── Applications ─────────────────────────────────────────────────────────────
+
+def get_all_applications(cursor):
+    """Return all applications with student name and opportunity title."""
+    cursor.execute(
+        "SELECT a.user_id, s.name AS student_name, "
+        "a.opportunity_id, o.title AS opportunity_title, "
+        "CAST(a.applied_at AS CHAR) AS applied_at, a.status "
+        "FROM Application a "
+        "JOIN Student     s ON a.user_id        = s.user_id "
+        "JOIN Opportunity o ON a.opportunity_id = o.opportunity_id "
+        "ORDER BY a.applied_at DESC"
+    )
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+def create_application(cursor, user_id, opp_id):
+    """Insert a new application and return its dict."""
+    cursor.execute(
+        "INSERT INTO Application (user_id, opportunity_id) VALUES (%s, %s)",
+        (user_id, opp_id),
+    )
+    return {"user_id": user_id, "opportunity_id": opp_id, "status": "submitted"}
+
+
+def delete_application(cursor, user_id, opp_id):
+    """Delete an application. Returns True if a row was removed."""
+    cursor.execute(
+        "DELETE FROM Application WHERE user_id = %s AND opportunity_id = %s",
+        (user_id, opp_id),
+    )
+    return cursor.rowcount > 0
+
+
+# ─── Matching Algorithm ───────────────────────────────────────────────────────
+
+def _compute_score(student_skills, opp_skills):
+    """Compute the match score for a single (student, opportunity) pair.
+
+    student_skills: {skill_id: level_str}
+    opp_skills:     [(skill_id, priority_str), ...]
+
+    Formula:
+        required_raw  = SUM of level_weight for each required skill the student has
+        preferred_raw = SUM of level_weight for each preferred skill the student has
+        max_required  = count(required) * 1.0
+        max_preferred = count(preferred) * 0.5
+        score = ROUND((required_raw + preferred_raw * 0.5) / (max_required + max_preferred), 4)
+    """
+    required  = [(sid, p) for sid, p in opp_skills if p == "required"]
+    preferred = [(sid, p) for sid, p in opp_skills if p == "preferred"]
+
+    required_raw  = sum(
+        LEVEL_WEIGHTS.get(student_skills.get(sid, ""), 0.0) for sid, _ in required
+    )
+    preferred_raw = sum(
+        LEVEL_WEIGHTS.get(student_skills.get(sid, ""), 0.0) for sid, _ in preferred
+    )
+
+    max_required  = len(required) * 1.0
+    max_preferred = len(preferred) * 0.5
+    denominator   = max_required + max_preferred
+
+    if denominator == 0:
+        return 0.0
+    return round((required_raw + preferred_raw * 0.5) / denominator, 4)
+
+
+def compute_match_scores(cursor, user_id):
+    """Return ranked opportunities with match scores and skill breakdown.
+
+    Raises ValueError if the student does not exist.
+
+    Each result dict contains:
+        opportunity_id, opportunity (title), company, location,
+        score (float 0–1), matched_skills (list), missing_skills (list)
+    """
+    cursor.execute("SELECT user_id FROM Student WHERE user_id = %s", (user_id,))
+    if cursor.fetchone() is None:
+        raise ValueError(f"Student {user_id} not found")
+
+    # Load student's skills as {skill_id: level}
+    cursor.execute(
+        "SELECT skill_id, level FROM StudentSkill WHERE user_id = %s", (user_id,)
+    )
+    student_skills = {row[0]: row[1] for row in cursor.fetchall()}
+
+    # Load all opportunities
+    cursor.execute(
+        "SELECT o.opportunity_id, o.title, c.name AS company, o.location "
+        "FROM Opportunity o "
+        "JOIN Company c ON o.company_id = c.company_id "
+        "ORDER BY o.opportunity_id"
+    )
+    opportunities = [
+        {"opportunity_id": r[0], "opportunity": r[1], "company": r[2], "location": r[3]}
+        for r in cursor.fetchall()
+    ]
+
+    # Load all opportunity skills in a single query to avoid N+1
+    cursor.execute(
+        "SELECT os.opportunity_id, os.skill_id, sk.name, os.priority "
+        "FROM OpportunitySkill os "
+        "JOIN Skill sk ON os.skill_id = sk.skill_id"
+    )
+    opp_skill_map = {}  # {opp_id: [(skill_id, skill_name, priority), ...]}
+    for opp_id, skill_id, skill_name, priority in cursor.fetchall():
+        opp_skill_map.setdefault(opp_id, []).append((skill_id, skill_name, priority))
+
+    results = []
+    for opp in opportunities:
+        oid    = opp["opportunity_id"]
+        skills = opp_skill_map.get(oid, [])
+
+        score = _compute_score(student_skills, [(sid, p) for sid, _, p in skills])
+
+        matched, missing = [], []
+        for sid, sname, priority in skills:
+            level = student_skills.get(sid)
+            if level:
+                matched.append({"skill": sname, "level": level, "priority": priority})
+            elif priority == "required":
+                missing.append({"skill": sname, "priority": priority})
+
+        results.append({
+            "opportunity_id": oid,
+            "opportunity":    opp["opportunity"],
+            "company":        opp["company"],
+            "location":       opp["location"],
+            "score":          score,
+            "matched_skills": matched,
+            "missing_skills": missing,
+        })
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+    return results

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{% if student %}Edit {{ student.name }}{% else %}Add Student{% endif %}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/students">Students</a></li>
+    {% if student %}
+    <li class="breadcrumb-item"><a href="/students/{{ student.user_id }}">{{ student.name }}</a></li>
+    <li class="breadcrumb-item active">Edit</li>
+    {% else %}
+    <li class="breadcrumb-item active">Add Student</li>
+    {% endif %}
+  </ol>
+</nav>
+
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <h5 class="mb-0">{% if student %}Edit Student{% else %}Add Student{% endif %}</h5>
+      </div>
+      <div class="card-body">
+        <form id="student-form">
+          <div class="mb-3">
+            <label class="form-label" for="name">Name <span class="text-danger">*</span></label>
+            <input type="text" id="name" name="name" class="form-control"
+                   value="{{ student.name if student else '' }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="email">Email <span class="text-danger">*</span></label>
+            <input type="email" id="email" name="email" class="form-control"
+                   value="{{ student.email if student else '' }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="major">Major <span class="text-danger">*</span></label>
+            <input type="text" id="major" name="major" class="form-control"
+                   value="{{ student.major if student else '' }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="location">Location <span class="text-danger">*</span></label>
+            <input type="text" id="location" name="location" class="form-control"
+                   value="{{ student.location if student else '' }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="resume">Resume (optional)</label>
+            <textarea id="resume" name="resume" class="form-control"
+                      rows="3">{{ student.resume if student and student.resume else '' }}</textarea>
+          </div>
+          <div id="form-error" class="alert alert-danger d-none"></div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              {% if student %}Save Changes{% else %}Create Student{% endif %}
+            </button>
+            <a href="{% if student %}/students/{{ student.user_id }}{% else %}/students{% endif %}"
+               class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const IS_EDIT  = {{ 'true' if student else 'false' }};
+const STUDENT_ID = {{ student.user_id if student else 'null' }};
+
+document.getElementById('student-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const data = {};
+  formData.forEach((v, k) => { data[k] = v; });
+
+  const method = IS_EDIT ? 'PUT' : 'POST';
+  const url    = IS_EDIT ? `/students/${STUDENT_ID}` : '/students';
+
+  const resp = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (resp.ok) {
+    window.location.href = IS_EDIT ? `/students/${STUDENT_ID}` : '/students';
+  } else {
+    const err = await resp.json();
+    const box = document.getElementById('form-error');
+    box.textContent = err.error || 'An error occurred.';
+    box.classList.remove('d-none');
+  }
+});
+</script>
+{% endblock %}

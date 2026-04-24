@@ -70,7 +70,7 @@ assert_body_contains "GET /students body" "Alice" "$BODY"
 RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/students/1")
 BODY=$(cat /tmp/body.txt)
 assert_status "GET /students/1" 200 "$RESP"
-assert_body_contains "GET /students/1 email" "at23@fsu.edu" "$BODY"
+assert_body_contains "GET /students/1 email" "alice.reyes@ucf.edu" "$BODY"
 
 # ---------------------------------------------------------------------------
 # GET /students/9999  — non-existent student → 404
@@ -118,7 +118,7 @@ curl -s -o /dev/null -X PUT "$BASE_URL/students/1" \
 # DELETE /students/<new>  — delete the student created above
 # ---------------------------------------------------------------------------
 # Fetch the new student's ID first
-NEW_ID=$(curl -s "$BASE_URL/students" | grep -o '"user_id":[0-9]*' | tail -1 | grep -o '[0-9]*')
+NEW_ID=$(curl -s "$BASE_URL/students" | grep -oE '"user_id": ?[0-9]+' | tail -1 | grep -oE '[0-9]+')
 if [ -n "$NEW_ID" ]; then
     RESP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$BASE_URL/students/$NEW_ID")
     assert_status "DELETE /students/$NEW_ID" 200 "$RESP"
@@ -133,7 +133,7 @@ fi
 RESP=$(curl -s -o /tmp/body.txt -w "%{http_code}" "$BASE_URL/opportunities")
 BODY=$(cat /tmp/body.txt)
 assert_status "GET /opportunities" 200 "$RESP"
-assert_body_contains "GET /opportunities body" "Software Engineering Intern" "$BODY"
+assert_body_contains "GET /opportunities body" "Full-Stack Web Developer Intern" "$BODY"
 
 # ---------------------------------------------------------------------------
 # GET /opportunities/1  — fetch opportunity by ID
