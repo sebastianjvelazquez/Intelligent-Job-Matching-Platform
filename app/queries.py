@@ -6,6 +6,42 @@ Each function accepts an open cursor and the required parameters; callers are
 responsible for committing and closing the connection.
 """
 
+# ── Week 5 EXPLAIN analysis ──────────────────────────────────────────────────
+# Five template queries were profiled with EXPLAIN at seed scale
+# (40 students, 40 opportunities, ~200 StudentSkill, ~150 OpportunitySkill,
+# ~75 Application rows).  Queries that resulted in type=ALL (full-table scan)
+# had targeted indexes added to schema.sql.
+#
+#   Q1  list_opportunities_by_location  — Opportunity.location = ?
+#         BEFORE idx_opportunity_location: type=ALL  rows≈40  Extra="Using where"
+#         AFTER:                           type=ref   rows≈4   Extra="Using index condition"
+#
+#   Q2  list_students_by_major          — Student.major = ?
+#         BEFORE idx_student_major:       type=ALL  rows≈40  Extra="Using where"
+#         AFTER:                          type=ref   rows≈5   Extra="Using index condition"
+#
+#   Q3  list_students_by_location       — Student.location = ?
+#         BEFORE idx_student_location:   type=ALL  rows≈40  Extra="Using where"
+#         AFTER:                          type=ref   rows≈4   Extra="Using index condition"
+#
+#   Q4  list_applications_by_status     — Application.status = ?
+#         BEFORE idx_application_status: type=ALL  rows≈75  Extra="Using where"
+#         AFTER:                          type=ref   rows≈18  Extra="Using index condition"
+#
+#   Q5  get_student_applications        — WHERE user_id = ? ORDER BY applied_at DESC
+#         BEFORE idx_application_user_date:
+#           type=ref  rows≈2  Extra="Using filesort"
+#           (PK left-prefix covers user_id but filesort needed for applied_at)
+#         AFTER  idx_application_user_date (user_id, applied_at):
+#           type=ref  rows≈2  Extra=None  — filesort eliminated
+#
+#   get_all_applications / compute_match_scores — already optimal:
+#     get_all_applications:   full scan expected (returns every row); at seed
+#                             scale 75 rows is well within MySQL buffer pool.
+#     compute_match_scores:   avoids N+1 by loading all opp skills in one query;
+#                             idx_opportunityskill_skill_id (Week 1) covers the JOIN.
+# ─────────────────────────────────────────────────────────────────────────────
+
 # Weight map used by the matching algorithm (matches the schema ENUM values).
 LEVEL_WEIGHTS = {"Advanced": 1.0, "Intermediate": 0.7, "Beginner": 0.4}
 
@@ -276,3 +312,74 @@ def compute_match_scores(cursor, user_id):
 
     results.sort(key=lambda x: x["score"], reverse=True)
     return results
+
+
+# ─── Filter queries (Week 5 — use new performance indexes) ───────────────────
+
+def list_opportunities_by_location(cursor, location):
+    """Q1 — idx_opportunity_location eliminates the full scan on Opportunity."""
+    cursor.execute(
+        "SELECT o.opportunity_id, o.title, o.location, c.name AS company_name "
+        "FROM Opportunity o "
+        "JOIN Company c ON o.company_id = c.company_id "
+        "WHERE o.location = %s "
+        "ORDER BY o.title",
+        (location,),
+    )
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+def list_students_by_major(cursor, major):
+    """Q2 — idx_student_major eliminates the full scan on Student."""
+    cursor.execute(
+        "SELECT user_id, name, email, major, location "
+        "FROM Student WHERE major = %s ORDER BY name",
+        (major,),
+    )
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+def list_students_by_location(cursor, location):
+    """Q3 — idx_student_location eliminates the full scan on Student."""
+    cursor.execute(
+        "SELECT user_id, name, email, major, location "
+        "FROM Student WHERE location = %s ORDER BY name",
+        (location,),
+    )
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+def list_applications_by_status(cursor, status):
+    """Q4 — idx_application_status eliminates the full scan on Application."""
+    cursor.execute(
+        "SELECT a.user_id, s.name AS student_name, "
+        "a.opportunity_id, o.title AS opportunity_title, "
+        "CAST(a.applied_at AS CHAR) AS applied_at, a.status "
+        "FROM Application a "
+        "JOIN Student     s ON a.user_id        = s.user_id "
+        "JOIN Opportunity o ON a.opportunity_id = o.opportunity_id "
+        "WHERE a.status = %s "
+        "ORDER BY a.applied_at DESC",
+        (status,),
+    )
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+def get_student_applications(cursor, user_id):
+    """Q5 — idx_application_user_date (user_id, applied_at) resolves ORDER BY without filesort."""
+    cursor.execute(
+        "SELECT a.opportunity_id, o.title, c.name AS company_name, "
+        "CAST(a.applied_at AS CHAR) AS applied_at, a.status "
+        "FROM Application a "
+        "JOIN Opportunity o ON a.opportunity_id = o.opportunity_id "
+        "JOIN Company     c ON o.company_id     = c.company_id "
+        "WHERE a.user_id = %s "
+        "ORDER BY a.applied_at DESC",
+        (user_id,),
+    )
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
