@@ -134,3 +134,25 @@ CREATE OR REPLACE VIEW OpportunitySkillView AS
     JOIN OpportunitySkill os ON o.opportunity_id  = os.opportunity_id
     JOIN Skill            sk ON os.skill_id        = sk.skill_id;
 
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Week 5 — Query-performance indexes
+--
+-- Identified by running EXPLAIN on the five template queries in queries.py at
+-- seed scale (40 students, 40 opportunities, ~200 StudentSkill rows,
+-- ~150 OpportunitySkill rows, ~75 Application rows).
+--
+-- Q1  list_opportunities_by_location — type=ALL (full scan ~40 rows) without index
+-- Q2  list_students_by_major         — type=ALL (full scan ~40 rows) without index
+-- Q3  list_students_by_location      — type=ALL (full scan ~40 rows) without index
+-- Q4  list_applications_by_status    — type=ALL (full scan ~75 rows) without index
+-- Q5  get_student_applications       — type=ref, Extra="Using filesort" without index
+--                                       (PK prefix covers user_id but filesort needed
+--                                        for ORDER BY applied_at DESC)
+-- ──────────────────────────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_student_location       ON Student     (location);
+CREATE INDEX IF NOT EXISTS idx_student_major          ON Student     (major);
+CREATE INDEX IF NOT EXISTS idx_opportunity_location   ON Opportunity (location);
+CREATE INDEX IF NOT EXISTS idx_application_status     ON Application (status);
+-- Composite: covers WHERE user_id = ? ORDER BY applied_at DESC (eliminates filesort)
+CREATE INDEX IF NOT EXISTS idx_application_user_date  ON Application (user_id, applied_at);
+
