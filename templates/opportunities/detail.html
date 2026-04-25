@@ -21,36 +21,58 @@
         <li class="list-group-item"><strong>Company Location:</strong> {{ opp.company_location }}</li>
         <li class="list-group-item"><strong>Job Location:</strong> {{ opp.location }}</li>
       </ul>
-      <div class="card-footer">
-        <a href="/match" class="btn btn-success btn-sm">Run Match for This Role</a>
+      <div class="card-footer d-flex flex-wrap gap-2">
+        <a href="/applications/new?opportunity_id={{ opp.opportunity_id }}" class="btn btn-success btn-sm">Apply</a>
+        <a href="/opportunities/{{ opp.opportunity_id }}/edit" class="btn btn-primary btn-sm">Edit</a>
+        <a href="/match" class="btn btn-outline-success btn-sm">Run Match</a>
+        <form action="/opportunities/{{ opp.opportunity_id }}/delete" method="post"
+              onsubmit="return confirm('Delete this opportunity?');">
+          <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+        </form>
       </div>
     </div>
   </div>
 
   <div class="col-md-7">
-    <h5>Required &amp; Preferred Skills
-      <span class="badge bg-secondary">{{ opp.skills|length }}</span>
-    </h5>
+    <div class="d-flex justify-content-between align-items-center">
+      <h5>Required &amp; Preferred Skills
+        <span class="badge bg-secondary">{{ opp.skills|length }}</span>
+      </h5>
+      <a href="/applications?opportunity_id={{ opp.opportunity_id }}" class="btn btn-sm btn-outline-secondary">View Applications</a>
+    </div>
     {% if opp.skills %}
-    <table class="table table-sm table-bordered">
-      <thead class="table-light">
-        <tr><th>Skill</th><th>Priority</th></tr>
-      </thead>
-      <tbody>
-        {% for sk in opp.skills %}
-        <tr>
-          <td>{{ sk.skill_name }}</td>
-          <td>
-            {% if sk.priority == 'required' %}
-              <span class="badge badge-required">required</span>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="card h-100 border-danger-subtle">
+          <div class="card-header bg-danger-subtle">Required Skills</div>
+          <div class="card-body">
+            {% set required_skills = opp.skills | selectattr('priority', 'equalto', 'required') | list %}
+            {% if required_skills %}
+              {% for sk in required_skills %}
+                <span class="badge badge-required me-1 mb-1">{{ sk.skill_name }}</span>
+              {% endfor %}
             {% else %}
-              <span class="badge badge-preferred">preferred</span>
+              <p class="text-muted mb-0">No required skills listed.</p>
             {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card h-100 border-primary-subtle">
+          <div class="card-header bg-primary-subtle">Preferred Skills</div>
+          <div class="card-body">
+            {% set preferred_skills = opp.skills | selectattr('priority', 'equalto', 'preferred') | list %}
+            {% if preferred_skills %}
+              {% for sk in preferred_skills %}
+                <span class="badge badge-preferred me-1 mb-1">{{ sk.skill_name }}</span>
+              {% endfor %}
+            {% else %}
+              <p class="text-muted mb-0">No preferred skills listed.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
     {% else %}
     <p class="text-muted">No skills specified for this opportunity.</p>
     {% endif %}

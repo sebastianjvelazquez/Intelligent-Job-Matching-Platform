@@ -80,6 +80,7 @@ def get_student_by_id(cursor, user_id):
     )
     skill_cols = [d[0] for d in cursor.description]
     student["skills"] = [dict(zip(skill_cols, r)) for r in cursor.fetchall()]
+    student["applications"] = get_student_applications(cursor, user_id)
     return student
 
 
@@ -120,9 +121,12 @@ def delete_student(cursor, user_id):
 def get_all_opportunities(cursor):
     """Return all opportunities with company name, ordered by title."""
     cursor.execute(
-        "SELECT o.opportunity_id, o.title, o.location, c.name AS company_name "
+        "SELECT o.opportunity_id, o.title, o.location, c.name AS company_name, "
+        "COUNT(DISTINCT os.skill_id) AS skill_count "
         "FROM Opportunity o "
         "JOIN Company c ON o.company_id = c.company_id "
+        "LEFT JOIN OpportunitySkill os ON o.opportunity_id = os.opportunity_id "
+        "GROUP BY o.opportunity_id, o.title, o.location, c.name "
         "ORDER BY o.title"
     )
     cols = [d[0] for d in cursor.description]
@@ -149,12 +153,42 @@ def get_opportunity_by_id(cursor, opp_id):
         "FROM OpportunitySkill os "
         "JOIN Skill sk ON os.skill_id = sk.skill_id "
         "WHERE os.opportunity_id = %s "
-        "ORDER BY os.priority, sk.name",
+        "ORDER BY FIELD(os.priority, 'required', 'preferred'), sk.name",
         (opp_id,),
     )
     skill_cols = [d[0] for d in cursor.description]
     opp["skills"] = [dict(zip(skill_cols, r)) for r in cursor.fetchall()]
     return opp
+
+
+def create_opportunity(cursor, title, location, company_id):
+    """Insert a new opportunity and return the generated opportunity_id."""
+    cursor.execute(
+        "INSERT INTO Opportunity (title, location, company_id) VALUES (%s, %s, %s)",
+        (title, location, company_id),
+    )
+    return cursor.lastrowid
+
+
+def update_opportunity(cursor, opp_id, fields):
+    """Update editable fields for an opportunity."""
+    allowed = {"title", "location", "company_id"}
+    updates = {k: v for k, v in fields.items() if k in allowed}
+    if not updates:
+        return False
+    set_clause = ", ".join(f"{col} = %s" for col in updates)
+    values = list(updates.values()) + [opp_id]
+    cursor.execute(
+        f"UPDATE Opportunity SET {set_clause} WHERE opportunity_id = %s",
+        values,
+    )
+    return cursor.rowcount > 0
+
+
+def delete_opportunity(cursor, opp_id):
+    """Delete an opportunity by primary key. Returns True if a row was removed."""
+    cursor.execute("DELETE FROM Opportunity WHERE opportunity_id = %s", (opp_id,))
+    return cursor.rowcount > 0
 
 
 # ─── Companies ───────────────────────────────────────────────────────────────
@@ -175,19 +209,130 @@ def get_all_skills(cursor):
     return [dict(zip(cols, row)) for row in cursor.fetchall()]
 
 
+def get_student_majors(cursor):
+    """Return all distinct majors ordered alphabetically."""
+    cursor.execute("SELECT DISTINCT major FROM Student ORDER BY major")
+    return [row[0] for row in cursor.fetchall()]
+
+
+def get_search_locations(cursor):
+    """Return the combined list of student and opportunity locations."""
+    cursor.execute(
+        "SELECT location FROM ("
+        "SELECT DISTINCT location FROM Student "
+        "UNION "
+        "SELECT DISTINCT location FROM Opportunity"
+        ") locations ORDER BY location"
+    )
+    return [row[0] for row in cursor.fetchall()]
+
+
+def search_students(cursor, major=None, location=None, skill_id=None):
+    """Return students matching the search filters."""
+    sql = [
+        "SELECT s.user_id, s.name, s.email, s.major, s.location, "
+        "COUNT(DISTINCT ss.skill_id) AS skill_count "
+        "FROM Student s "
+        "LEFT JOIN StudentSkill ss ON s.user_id = ss.user_id"
+    ]
+    where = []
+    params = []
+
+    if major:
+        where.append("s.major = %s")
+        params.append(major)
+    if location:
+        where.append("s.location = %s")
+        params.append(location)
+    if skill_id:
+        where.append(
+            "EXISTS ("
+            "SELECT 1 FROM StudentSkill ss_filter "
+            "WHERE ss_filter.user_id = s.user_id AND ss_filter.skill_id = %s"
+            ")"
+        )
+        params.append(skill_id)
+
+    if where:
+        sql.append("WHERE " + " AND ".join(where))
+
+    sql.append(
+        "GROUP BY s.user_id, s.name, s.email, s.major, s.location "
+        "ORDER BY s.name"
+    )
+    cursor.execute(" ".join(sql), params)
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+def search_opportunities(cursor, location=None, skill_id=None):
+    """Return opportunities matching the search filters."""
+    sql = [
+        "SELECT o.opportunity_id, o.title, o.location, c.name AS company_name, "
+        "COUNT(DISTINCT os.skill_id) AS skill_count "
+        "FROM Opportunity o "
+        "JOIN Company c ON o.company_id = c.company_id "
+        "LEFT JOIN OpportunitySkill os ON o.opportunity_id = os.opportunity_id"
+    ]
+    where = []
+    params = []
+
+    if location:
+        where.append("o.location = %s")
+        params.append(location)
+    if skill_id:
+        where.append(
+            "EXISTS ("
+            "SELECT 1 FROM OpportunitySkill os_filter "
+            "WHERE os_filter.opportunity_id = o.opportunity_id "
+            "AND os_filter.skill_id = %s"
+            ")"
+        )
+        params.append(skill_id)
+
+    if where:
+        sql.append("WHERE " + " AND ".join(where))
+
+    sql.append(
+        "GROUP BY o.opportunity_id, o.title, o.location, c.name "
+        "ORDER BY o.title"
+    )
+    cursor.execute(" ".join(sql), params)
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
 # ─── Applications ─────────────────────────────────────────────────────────────
 
-def get_all_applications(cursor):
-    """Return all applications with student name and opportunity title."""
-    cursor.execute(
+def get_all_applications(cursor, user_id=None, opportunity_id=None, status=None):
+    """Return applications, optionally filtered by student, opportunity, or status."""
+    sql = [
         "SELECT a.user_id, s.name AS student_name, "
         "a.opportunity_id, o.title AS opportunity_title, "
-        "CAST(a.applied_at AS CHAR) AS applied_at, a.status "
+        "c.name AS company_name, CAST(a.applied_at AS CHAR) AS applied_at, a.status "
         "FROM Application a "
         "JOIN Student     s ON a.user_id        = s.user_id "
         "JOIN Opportunity o ON a.opportunity_id = o.opportunity_id "
-        "ORDER BY a.applied_at DESC"
-    )
+        "JOIN Company     c ON o.company_id     = c.company_id"
+    ]
+    where = []
+    params = []
+
+    if user_id is not None:
+        where.append("a.user_id = %s")
+        params.append(user_id)
+    if opportunity_id is not None:
+        where.append("a.opportunity_id = %s")
+        params.append(opportunity_id)
+    if status:
+        where.append("a.status = %s")
+        params.append(status)
+
+    if where:
+        sql.append("WHERE " + " AND ".join(where))
+
+    sql.append("ORDER BY a.applied_at DESC")
+    cursor.execute(" ".join(sql), params)
     cols = [d[0] for d in cursor.description]
     return [dict(zip(cols, row)) for row in cursor.fetchall()]
 
@@ -199,6 +344,16 @@ def create_application(cursor, user_id, opp_id):
         (user_id, opp_id),
     )
     return {"user_id": user_id, "opportunity_id": opp_id, "status": "submitted"}
+
+
+def update_application_status(cursor, user_id, opp_id, status):
+    """Update an application's status."""
+    cursor.execute(
+        "UPDATE Application SET status = %s "
+        "WHERE user_id = %s AND opportunity_id = %s",
+        (status, user_id, opp_id),
+    )
+    return cursor.rowcount > 0
 
 
 def delete_application(cursor, user_id, opp_id):
@@ -354,19 +509,7 @@ def list_students_by_location(cursor, location):
 
 def list_applications_by_status(cursor, status):
     """Q4 — idx_application_status eliminates the full scan on Application."""
-    cursor.execute(
-        "SELECT a.user_id, s.name AS student_name, "
-        "a.opportunity_id, o.title AS opportunity_title, "
-        "CAST(a.applied_at AS CHAR) AS applied_at, a.status "
-        "FROM Application a "
-        "JOIN Student     s ON a.user_id        = s.user_id "
-        "JOIN Opportunity o ON a.opportunity_id = o.opportunity_id "
-        "WHERE a.status = %s "
-        "ORDER BY a.applied_at DESC",
-        (status,),
-    )
-    cols = [d[0] for d in cursor.description]
-    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+    return get_all_applications(cursor, status=status)
 
 
 def get_student_applications(cursor, user_id):

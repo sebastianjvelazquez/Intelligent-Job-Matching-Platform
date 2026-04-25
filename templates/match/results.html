@@ -27,9 +27,10 @@
         <th>opportunity</th>
         <th>Company</th>
         <th>Location</th>
-        <th>score</th>
+        <th>Score</th>
         <th>Matched Skills</th>
         <th>Missing Required</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
@@ -43,7 +44,7 @@
         <td>{{ r.location }}</td>
         <td>
           <div class="fw-bold {% if r.score >= 0.8 %}text-success{% elif r.score >= 0.5 %}text-primary{% else %}text-muted{% endif %}">
-            {{ "%.4f"|format(r.score) }}
+            {{ "%.1f"|format(r.score * 100) }}%
           </div>
           <div class="progress mt-1" style="height:6px; width:80px;">
             <div class="progress-bar
@@ -64,9 +65,12 @@
         <td>
           {% for sk in r.missing_skills %}
             <span class="badge bg-danger me-1 mb-1">{{ sk.skill }}</span>
-          {% else %}
+            {% else %}
             <span class="text-success small">✓ all required</span>
           {% endfor %}
+        </td>
+        <td>
+          <a href="/match/{{ student.user_id }}/{{ r.opportunity_id }}" class="btn btn-sm btn-outline-secondary">Details</a>
         </td>
       </tr>
       {% endfor %}
@@ -80,8 +84,7 @@
     <span class="badge bg-success me-1">required skill matched</span>
     <span class="badge bg-primary me-1">preferred skill matched</span>
     <span class="badge bg-danger me-1">required skill missing</span>
-    &nbsp;·&nbsp;
-    score = (required_raw + preferred_raw × 0.5) / (max_req + max_pref × 0.5)
+    <span class="ms-2">score = (required_raw + preferred_raw x 0.5) / (max_req + max_pref x 0.5)</span>
   </div>
 </div>
 {% endblock %}

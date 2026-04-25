@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{% if opp %}Edit {{ opp.title }}{% else %}Add Opportunity{% endif %}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/opportunities">Opportunities</a></li>
+    {% if opp %}
+    <li class="breadcrumb-item"><a href="/opportunities/{{ opp.opportunity_id }}">{{ opp.title }}</a></li>
+    <li class="breadcrumb-item active">Edit</li>
+    {% else %}
+    <li class="breadcrumb-item active">Add Opportunity</li>
+    {% endif %}
+  </ol>
+</nav>
+
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <h5 class="mb-0">{% if opp %}Edit Opportunity{% else %}Add Opportunity{% endif %}</h5>
+      </div>
+      <div class="card-body">
+        <form action="{% if opp %}/opportunities/{{ opp.opportunity_id }}/edit{% else %}/opportunities{% endif %}" method="post">
+          <div class="mb-3">
+            <label class="form-label" for="title">Title</label>
+            <input type="text" id="title" name="title" class="form-control"
+                   value="{{ opp.title if opp else '' }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="location">Location</label>
+            <input type="text" id="location" name="location" class="form-control"
+                   value="{{ opp.location if opp else '' }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="company_id">Company</label>
+            <select id="company_id" name="company_id" class="form-select" required>
+              <option value="">Choose a company</option>
+              {% for company in companies %}
+              <option value="{{ company.company_id }}"
+                      {% if opp and company.company_id == opp.company_id %}selected{% endif %}>
+                {{ company.name }} - {{ company.location }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              {% if opp %}Save Changes{% else %}Create Opportunity{% endif %}
+            </button>
+            <a href="{% if opp %}/opportunities/{{ opp.opportunity_id }}{% else %}/opportunities{% endif %}"
+               class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

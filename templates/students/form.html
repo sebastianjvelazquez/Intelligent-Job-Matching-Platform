@@ -21,7 +21,7 @@
         <h5 class="mb-0">{% if student %}Edit Student{% else %}Add Student{% endif %}</h5>
       </div>
       <div class="card-body">
-        <form id="student-form">
+        <form action="{% if student %}/students/{{ student.user_id }}/edit{% else %}/students{% endif %}" method="post">
           <div class="mb-3">
             <label class="form-label" for="name">Name <span class="text-danger">*</span></label>
             <input type="text" id="name" name="name" class="form-control"
@@ -47,7 +47,6 @@
             <textarea id="resume" name="resume" class="form-control"
                       rows="3">{{ student.resume if student and student.resume else '' }}</textarea>
           </div>
-          <div id="form-error" class="alert alert-danger d-none"></div>
           <div class="d-flex gap-2">
             <button type="submit" class="btn btn-primary">
               {% if student %}Save Changes{% else %}Create Student{% endif %}
@@ -60,36 +59,4 @@
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-const IS_EDIT  = {{ 'true' if student else 'false' }};
-const STUDENT_ID = {{ student.user_id if student else 'null' }};
-
-document.getElementById('student-form').addEventListener('submit', async function (e) {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const data = {};
-  formData.forEach((v, k) => { data[k] = v; });
-
-  const method = IS_EDIT ? 'PUT' : 'POST';
-  const url    = IS_EDIT ? `/students/${STUDENT_ID}` : '/students';
-
-  const resp = await fetch(url, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-
-  if (resp.ok) {
-    window.location.href = IS_EDIT ? `/students/${STUDENT_ID}` : '/students';
-  } else {
-    const err = await resp.json();
-    const box = document.getElementById('form-error');
-    box.textContent = err.error || 'An error occurred.';
-    box.classList.remove('d-none');
-  }
-});
-</script>
 {% endblock %}

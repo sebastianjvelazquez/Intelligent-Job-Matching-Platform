@@ -27,8 +27,11 @@
       <div class="card-footer d-flex gap-2">
         <a href="/students/{{ student.user_id }}/edit" class="btn btn-primary btn-sm">Edit</a>
         <a href="/match/{{ student.user_id }}" class="btn btn-success btn-sm">View Matches</a>
-        <button class="btn btn-danger btn-sm ms-auto"
-                onclick="deleteStudent({{ student.user_id }})">Delete</button>
+        <a href="/applications/new?user_id={{ student.user_id }}" class="btn btn-outline-secondary btn-sm">Apply to Role</a>
+        <form action="/students/{{ student.user_id }}/delete" method="post" class="ms-auto"
+              onsubmit="return confirm('Delete this student? This cannot be undone.');">
+          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
       </div>
     </div>
   </div>
@@ -62,20 +65,39 @@
     {% else %}
     <p class="text-muted">No skills on record.</p>
     {% endif %}
+
+    <div class="mt-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Applications</h5>
+        <a href="/applications?user_id={{ student.user_id }}" class="btn btn-sm btn-outline-secondary">View All</a>
+      </div>
+      {% if student.applications %}
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Opportunity</th>
+              <th>Company</th>
+              <th>Applied</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for app in student.applications %}
+            <tr>
+              <td><a href="/opportunities/{{ app.opportunity_id }}">{{ app.title }}</a></td>
+              <td>{{ app.company_name }}</td>
+              <td class="text-muted small">{{ app.applied_at }}</td>
+              <td><span class="badge bg-secondary">{{ app.status }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">This student has not applied to any opportunities yet.</p>
+      {% endif %}
+    </div>
   </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-async function deleteStudent(id) {
-  if (!confirm('Delete this student? This cannot be undone.')) return;
-  const resp = await fetch(`/students/${id}`, { method: 'DELETE' });
-  if (resp.ok) window.location.href = '/students';
-  else {
-    const err = await resp.json();
-    alert(err.error || 'Failed to delete student.');
-  }
-}
-</script>
 {% endblock %}

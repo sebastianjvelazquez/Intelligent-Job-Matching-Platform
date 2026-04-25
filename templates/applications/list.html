@@ -2,20 +2,64 @@
 {% block title %}Applications{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h2>Applications <span class="badge bg-secondary">{{ applications|length }}</span></h2>
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h2 class="mb-0">Applications <span class="badge bg-secondary">{{ applications|length }}</span></h2>
+  <a href="/applications/new" class="btn btn-primary">+ Submit Application</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <form method="get" action="/applications" class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label" for="user_id">Student</label>
+        <select class="form-select" id="user_id" name="user_id">
+          <option value="">All students</option>
+          {% for student in students %}
+          <option value="{{ student.user_id }}" {% if selected_user_id == student.user_id %}selected{% endif %}>
+            {{ student.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="opportunity_id">Opportunity</label>
+        <select class="form-select" id="opportunity_id" name="opportunity_id">
+          <option value="">All opportunities</option>
+          {% for opp in opportunities %}
+          <option value="{{ opp.opportunity_id }}" {% if selected_opportunity_id == opp.opportunity_id %}selected{% endif %}>
+            {{ opp.title }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label" for="status">Status</label>
+        <select class="form-select" id="status" name="status">
+          <option value="">Any status</option>
+          {% for status in statuses %}
+          <option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>{{ status }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 d-grid">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div class="table-responsive">
   <table class="table table-hover align-middle">
     <thead class="table-dark">
       <tr>
-        <th>user_id</th>
+        <th>User ID</th>
         <th>Student</th>
-        <th>opportunity_id</th>
+        <th>Opportunity ID</th>
         <th>Opportunity</th>
+        <th>Company</th>
         <th>Applied At</th>
         <th>Status</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -25,21 +69,32 @@
         <td><a href="/students/{{ a.user_id }}">{{ a.student_name }}</a></td>
         <td>{{ a.opportunity_id }}</td>
         <td><a href="/opportunities/{{ a.opportunity_id }}">{{ a.opportunity_title }}</a></td>
+        <td>{{ a.company_name }}</td>
         <td class="text-muted small">{{ a.applied_at }}</td>
         <td>
-          {% if a.status == 'accepted' %}
-            <span class="badge bg-success">{{ a.status }}</span>
-          {% elif a.status == 'rejected' %}
-            <span class="badge bg-danger">{{ a.status }}</span>
-          {% elif a.status == 'reviewed' %}
-            <span class="badge bg-primary">{{ a.status }}</span>
-          {% else %}
-            <span class="badge bg-secondary">{{ a.status }}</span>
-          {% endif %}
+          <span class="badge {% if a.status == 'accepted' %}bg-success{% elif a.status == 'rejected' %}bg-danger{% elif a.status == 'reviewed' %}bg-primary{% else %}bg-secondary{% endif %}">
+            {{ a.status }}
+          </span>
+        </td>
+        <td>
+          <form action="/applications/{{ a.user_id }}/{{ a.opportunity_id }}/status" method="post" class="d-flex gap-2 mb-2">
+            <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+            <select name="status" class="form-select form-select-sm">
+              {% for status in statuses %}
+              <option value="{{ status }}" {% if a.status == status %}selected{% endif %}>{{ status }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
+          </form>
+          <form action="/applications/{{ a.user_id }}/{{ a.opportunity_id }}/delete" method="post"
+                onsubmit="return confirm('Withdraw this application?');">
+            <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Withdraw</button>
+          </form>
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="6" class="text-center text-muted">No applications found.</td></tr>
+      <tr><td colspan="8" class="text-center text-muted">No applications found for the selected filters.</td></tr>
       {% endfor %}
     </tbody>
   </table>

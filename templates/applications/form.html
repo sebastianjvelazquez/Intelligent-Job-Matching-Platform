@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Submit Application{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/applications">Applications</a></li>
+    <li class="breadcrumb-item active">Submit Application</li>
+  </ol>
+</nav>
+
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <h5 class="mb-0">Apply to an Opportunity</h5>
+      </div>
+      <div class="card-body">
+        <form action="/applications" method="post">
+          <div class="mb-3">
+            <label class="form-label" for="user_id">Student</label>
+            <select id="user_id" name="user_id" class="form-select" required>
+              <option value="">Choose a student</option>
+              {% for student in students %}
+              <option value="{{ student.user_id }}" {% if selected_user_id == student.user_id %}selected{% endif %}>
+                {{ student.name }} - {{ student.major }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="opportunity_id">Opportunity</label>
+            <select id="opportunity_id" name="opportunity_id" class="form-select" required>
+              <option value="">Choose an opportunity</option>
+              {% for opp in opportunities %}
+              <option value="{{ opp.opportunity_id }}" {% if selected_opportunity_id == opp.opportunity_id %}selected{% endif %}>
+                {{ opp.title }} - {{ opp.company_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="alert alert-light border">
+            New applications are submitted with the default <strong>submitted</strong> status.
+            Use the applications list page to review, accept, or reject them.
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Submit Application</button>
+            <a href="/applications" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
