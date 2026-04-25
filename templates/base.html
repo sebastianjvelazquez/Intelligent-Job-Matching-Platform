@@ -28,6 +28,7 @@
         <ul class="navbar-nav me-auto">
           <li class="nav-item"><a class="nav-link {% if request.path.startswith('/students') %}active{% endif %}" href="/students">Students</a></li>
           <li class="nav-item"><a class="nav-link {% if request.path.startswith('/opportunities') %}active{% endif %}" href="/opportunities">Opportunities</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.path.startswith('/search') %}active{% endif %}" href="/search">Search</a></li>
           <li class="nav-item"><a class="nav-link {% if request.path.startswith('/match') %}active{% endif %}" href="/match">Match</a></li>
           <li class="nav-item"><a class="nav-link {% if request.path.startswith('/applications') %}active{% endif %}" href="/applications">Applications</a></li>
           <li class="nav-item"><a class="nav-link {% if request.path.startswith('/companies') %}active{% endif %}" href="/companies">Companies</a></li>

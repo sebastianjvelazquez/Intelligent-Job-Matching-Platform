@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <div>
+    <h2 class="mb-1">Unified Search</h2>
+    <p class="text-muted mb-0">Filter students and opportunities with a standard GET form.</p>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <form method="get" action="/search" class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label" for="major">Major</label>
+        <select id="major" name="major" class="form-select">
+          <option value="">Any major</option>
+          {% for major in majors %}
+          <option value="{{ major }}" {% if selected_major == major %}selected{% endif %}>{{ major }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="location">Location</label>
+        <select id="location" name="location" class="form-select">
+          <option value="">Any location</option>
+          {% for location in locations %}
+          <option value="{{ location }}" {% if selected_location == location %}selected{% endif %}>{{ location }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="skill_id">Skill</label>
+        <select id="skill_id" name="skill_id" class="form-select">
+          <option value="">Any skill</option>
+          {% for skill in skills %}
+          <option value="{{ skill.skill_id }}" {% if selected_skill_id == skill.skill_id %}selected{% endif %}>
+            {{ skill.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-12 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a href="/search" class="btn btn-outline-secondary">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if searched %}
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card h-100 shadow-sm">
+      <div class="card-header">Students <span class="badge bg-secondary">{{ students|length }}</span></div>
+      <div class="card-body">
+        {% if students %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Name</th>
+                <th>Major</th>
+                <th>Location</th>
+                <th>Skills</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in students %}
+              <tr>
+                <td><a href="/students/{{ student.user_id }}">{{ student.name }}</a></td>
+                <td>{{ student.major }}</td>
+                <td>{{ student.location }}</td>
+                <td>{{ student.skill_count }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">No students matched the selected filters.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card h-100 shadow-sm">
+      <div class="card-header">Opportunities <span class="badge bg-secondary">{{ opportunities|length }}</span></div>
+      <div class="card-body">
+        {% if opportunities %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Title</th>
+                <th>Company</th>
+                <th>Location</th>
+                <th>Skills</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for opp in opportunities %}
+              <tr>
+                <td><a href="/opportunities/{{ opp.opportunity_id }}">{{ opp.title }}</a></td>
+                <td>{{ opp.company_name }}</td>
+                <td>{{ opp.location }}</td>
+                <td>{{ opp.skill_count }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">No opportunities matched the selected filters.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-light border">
+  Choose one or more filters to search. Major filters apply to students; location and skill filters apply to both students and opportunities.
+</div>
+{% endif %}
+{% endblock %}

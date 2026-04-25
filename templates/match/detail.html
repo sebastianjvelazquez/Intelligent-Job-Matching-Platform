@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Match Detail - {{ student.name }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/match">Match</a></li>
+    <li class="breadcrumb-item"><a href="/match/{{ student.user_id }}">{{ student.name }}</a></li>
+    <li class="breadcrumb-item active">{{ result.opportunity }}</li>
+  </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <div>
+    <h2 class="mb-1">{{ result.opportunity }}</h2>
+    <p class="text-muted mb-0">{{ result.company }} · {{ result.location }}</p>
+  </div>
+  <div class="text-end">
+    <div class="small text-muted">Match Score</div>
+    <div class="display-6 fw-bold">{{ "%.1f"|format(result.score * 100) }}%</div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card h-100 border-success-subtle">
+      <div class="card-header bg-success-subtle">
+        Matched Skills <span class="badge bg-success ms-2">{{ result.matched_skills|length }}</span>
+      </div>
+      <div class="card-body">
+        {% if result.matched_skills %}
+        <div class="d-flex flex-wrap gap-2">
+          {% for skill in result.matched_skills %}
+          <div class="border rounded px-3 py-2 bg-success-subtle">
+            <div class="fw-semibold text-success">{{ skill.skill }}</div>
+            <div class="small text-muted">{{ skill.priority }} · {{ skill.level }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">This student does not match any skills for this role yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100 border-danger-subtle">
+      <div class="card-header bg-danger-subtle">
+        Missing Required Skills <span class="badge bg-danger ms-2">{{ result.missing_skills|length }}</span>
+      </div>
+      <div class="card-body">
+        {% if result.missing_skills %}
+        <div class="d-flex flex-wrap gap-2">
+          {% for skill in result.missing_skills %}
+          <span class="badge bg-danger fs-6">{{ skill.skill }}</span>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-success mb-0">All required skills are covered.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 bg-light mt-4">
+  <div class="card-body">
+    <p class="mb-2"><strong>Student:</strong> <a href="/students/{{ student.user_id }}">{{ student.name }}</a></p>
+    <p class="mb-2"><strong>Opportunity:</strong> <a href="/opportunities/{{ result.opportunity_id }}">{{ result.opportunity }}</a></p>
+    <p class="mb-0 text-muted small">
+      Required skills count fully toward the score. Preferred skills contribute bonus weight.
+    </p>
+  </div>
+</div>
+{% endblock %}
