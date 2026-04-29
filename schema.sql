@@ -93,9 +93,9 @@ CREATE TABLE IF NOT EXISTS OpportunitySkill (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Indexes on high-join columns (applied after table creation)
-CREATE INDEX IF NOT EXISTS idx_studentskill_skill_id    ON StudentSkill   (skill_id);
-CREATE INDEX IF NOT EXISTS idx_opportunityskill_skill_id ON OpportunitySkill (skill_id);
-CREATE INDEX IF NOT EXISTS idx_application_opportunity  ON Application    (opportunity_id);
+CREATE INDEX idx_studentskill_skill_id    ON StudentSkill   (skill_id);
+CREATE INDEX idx_opportunityskill_skill_id ON OpportunitySkill (skill_id);
+CREATE INDEX idx_application_opportunity  ON Application    (opportunity_id);
 
 -- ──────────────────────────────────────────────────────────────────────────────
 -- Pre-join Views (Week 4)
@@ -149,10 +149,10 @@ CREATE OR REPLACE VIEW OpportunitySkillView AS
 --                                       (PK prefix covers user_id but filesort needed
 --                                        for ORDER BY applied_at DESC)
 -- ──────────────────────────────────────────────────────────────────────────────
-CREATE INDEX IF NOT EXISTS idx_student_location       ON Student     (location);
-CREATE INDEX IF NOT EXISTS idx_student_major          ON Student     (major);
-CREATE INDEX IF NOT EXISTS idx_opportunity_location   ON Opportunity (location);
-CREATE INDEX IF NOT EXISTS idx_application_status     ON Application (status);
+CREATE INDEX idx_student_location       ON Student     (location);
+CREATE INDEX idx_student_major          ON Student     (major);
+CREATE INDEX idx_opportunity_location   ON Opportunity (location);
+CREATE INDEX idx_application_status     ON Application (status);
 -- Composite: covers WHERE user_id = ? ORDER BY applied_at DESC (eliminates filesort)
-CREATE INDEX IF NOT EXISTS idx_application_user_date  ON Application (user_id, applied_at);
+CREATE INDEX idx_application_user_date  ON Application (user_id, applied_at);
 
